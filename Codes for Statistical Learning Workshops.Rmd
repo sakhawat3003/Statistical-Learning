@@ -1,0 +1,228 @@
+---
+title: "Statistical Learning Workshops: Linear Regression"
+author: 
+   - name: "Md Sakhawat Hossen"
+     email: "sakhawat3003@gmail.com"
+     affiliation: "Former Data Analyst at Navana Group, Bangladesh" 
+date: "01/21/2022"
+output:
+  html_document:
+   toc: true
+   theme: cosmo
+   highlight: monochrome
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## *Linear Regression*
+
+Linear regression is the stepping stone for building any statistical learning model or Machine Learning Model. Although, it is somewhat dull in comparison to other vastly popular and complex learning algorithm but Linear regression is still a very useful tool for predicting quantitative response. We can easily make good inference on which variables or predictors are highly responsible for driving the response in good faith. The term *linear* is not simply limited to applying only linear terms of variables as the predictors but also we can fit polynomial version of the variables as predictors to build more complex model to capture the behavior of data. 
+
+We will start with the *Simple Linear Regression* where we will make prediction based on a single variable. Later, we will introduce multiple linear regression to accommodate many predictors, and interaction terms in a single model.      
+
+### *Simple Linear Regression*
+
+For this workshop, we first need to install *ISLR2* library in the R environment if it is not installed beforehand. The *ISLR2* library includes several dataset including *Boston* and *Carseats* dataset which we will use in this workshop.  
+
+```{r warning=FALSE}
+library(ISLR2)
+data("Boston")
+```
+
+```{r}
+head(Boston)
+```
+
+*Boston* dataset is the slightly modified version of the *Boston* dataset from the "MASS" library in *R*. 
+
+The dataset contains housing values in 506 suburbs of Boston. It is a data frame with 506 rows and 13 variables. To know more about the dataset we can type by *?Boston* command. 
+
+We will fit the linear regression model with *medv*(median house value) as the response and *lstat*(lower status in the neighborhood) as the only predictor. 
+
+```{r message=FALSE}
+attach(Boston) #the variables in the Boston dataset will be available without calling it 
+#explicitly if we attach the dataset. 
+```
+
+```{r}
+lm.fit<-lm(medv~lstat) #fitting the simple linear model with just one variable as predictor
+lm.fit
+```
+
+
+The call on *lm.fit* only reveals minimal information: Intercept and coefficient for *lstat*. 
+
+We can use the *summary* function for more detailed information including p-values and standard errors for the coefficients, the $R^2$ and $F$ statistics for the fitted model. 
+
+```{r}
+summary(lm.fit)
+```
+
+```{r}
+names(lm.fit) #names of the available information in the model. 
+```
+
+We can use the above names in the model following a dollar sign to extract any particular information, or we can use other built-in functions in R to extract the information from the fitted model. Examples are given below:
+
+```{r}
+lm.fit$coefficients #gives the intercept and the coefficients
+coef(lm.fit) #using coef function give the same result
+confint(lm.fit) #give the 95% confidence interval for the intercept and coefficients
+```
+
+The *predict* function is the primary option to predict any outcome from the model given the *lstat* value. The prediction can be accompanied by the confidence interval and the prediction interval. Confidence interval is mostly expected when we want to predict the average outcome from the model and prediction interval for predicting a single outcome from a single input. 
+
+```{r}
+predict(object = lm.fit, newdata = data.frame(lstat=(c(5,10,15))), interval = "confidence")
+```
+
+Here, we see the output for each of the lstat value provided in the data frame. For each of the predicted outcome, a 95% confidence interval is provided around the predicted response.
+
+```{r}
+predict(object = lm.fit, newdata =data.frame(lstat=(c(5,10,15))), interval = "prediction")
+```
+
+The predicted responses are now provided with the prediction intervals. Prediction interval is much more wider than the confidence interval as it accounts for the irreducible errors in the prediction.   
+Now, we will plot our least square regression line along with the actual data to manifest how our model was fitted. 
+
+```{r}
+plot(lstat,medv, pch=20, col="red") #plotting the actual data (red dots)
+abline(lm.fit, lwd=3, col="green") #drawing the least square regression line(green) through the data
+```
+
+From the plot, we see the presence of some non-linearity in the relationship between *lstat* and *medv*.  
+We can also plot the residuals from a linear regression fit using the *residuals* function and *rstudent* function which returns the studentized residuals. 
+
+```{r}
+plot(predict(lm.fit), residuals(lm.fit), pch=20, col="red", xlab = "Predicted Value", 
+     ylab = "Residuals")
+plot(predict(lm.fit), rstudent(lm.fit), pch=20, col="red", xlab = "Predicted Value", 
+     ylab = "Studentized Residuals")
+```
+
+Both the residuals and studentized residuals plots suggest strong evidence of non-linearity.   
+
+### *Multiple Linear Regression*
+
+We will again use the *lm* function to fit a linear regression model with multiple variables. 
+For simplicity, we will fit the linear model with two variables, *lstat* *age*. 
+
+```{r}
+lm.fit<-lm(medv~lstat+age, data = Boston)
+summary(lm.fit)
+```
+
+There are 12 variables in the *Boston* dataset. It will not be easy to type all the variable names to fit the model with all the variables. So, there is a shortcut to accommodate all the variables.
+
+```{r}
+lm.fit<-lm(medv~., data = Boston)
+summary(lm.fit)
+```
+
+This is possible to access various components of *summary* object by name. We can check them out by the command *?summary.lm*
+
+```{r}
+summary.fit<-summary(lm.fit)
+summary.fit$r.squared #gives the R-Square
+summary.fit$sigma #gives the RSE
+```
+
+Variance inflation factor(VIF) is an important measurement criteria for multi-colinearity in the predictor variables. As a rule of thumbs, VIF values greater than 5 should be considered as the presence of multi-colinearity in the variables. We can use the *vif* function from the *car* library for this purpose.      
+
+```{r warning=FALSE}
+library(car)
+vif(lm.fit)
+```
+
+As we can see, most of the VIF values are less than 5. 
+
+If we want to fit the model with all the variables except one or two then we can simply drop the variables. From our previous model, we have seen the p-value for the predictor *age* is high. So, we can fit the model again by eliminating the *age* variable.
+
+```{r}
+lm.fit01<- lm(medv~.-age, data = Boston)
+summary(lm.fit01)
+```
+
+Instead of fitting the model from scratch, we can simply update the model. 
+
+```{r}
+lm.fit01<-update(lm.fit, ~.-age) #updating without the age variable
+```
+
+### *Interaction Term*
+
+The inclusion of interaction terms in linear regression setting begs attention for good reasons. Interaction terms serve the purpose of *Synergy* effect: increasing or decreasing one predictor variable also influences the dynamics of another predictor variable. 
+
+The syntax *lstat:age* tells R to include an interaction term between the predictor variables *lstat* and *age*. We can also do the same thing with the syntax $lstat*age$ which accommodates not only the predictor variables in the model but also the interaction term. It is a shorthand formula for $lstat+age+lstat:age$  
+
+```{r}
+fit.interaction<-lm(medv~lstat*age, data = Boston)
+summary(fit.interaction)
+```
+
+### *Non-linear Transformation of the Predictors*
+
+In the previous model, we have seen the data shows the prevalence of non-linearity when we plotted residuals against the predicted values. It showed discernible pattern which is not expected when we have good a linear relationship between the response and the predictor. 
+
+R facilitates the transformation of predictor to accommodate non-linear relationship through *lm* function. Here, we will build the model with *medv* as the response and $lstat+lstat^2$ as the predictor. 
+
+```{r}
+lm.fit2<-lm(medv~lstat+I(lstat^2), data = Boston) #here I() is a wrapper around the quadratic term
+summary(lm.fit2)
+```
+
+The $R^2$ has definitely improved and the near zero p-value for the coefficient of $lstat^2$ suggests significant improvement over the previous model where we included only linear terms. 
+
+## *Model Comparison: Anova test*
+
+We will further investigate, whether this model is superior than the previous linear model with no quadratic term. We will perform an *Anova* test to quantify the extent to which the quadratic fit is superior to the linear fit. 
+
+```{r}
+lm.fit<-lm(medv~lstat, data = Boston)
+anova(lm.fit,lm.fit2)
+```
+
+The *anova* function here performs a hypothesis test between these two models. The null hypothesis is that the two models fit the data equally well. But, the alternative hypothesis is that the full model is superior than the simpler one. 
+
+We see a F-statistic of 135 and a p-value very close to zero for this hypothesis testing. We can confirm the superiority of the model with $lstat^2$ 
+
+```{r}
+par(mfrow=c(2,2))
+plot(lm.fit2, col="light blue", pch=20)
+```
+
+From the plotted data of the model with $lstat^2$, we can see less discernible pattern of the residuals.  
+
+We can also accommodate higher order polynomials in the model by using the *poly* function. 
+
+```{r}
+fit.poly<-lm(medv~poly(lstat,5), data = Boston)
+summary(fit.poly)
+```
+
+Certainly, the model improves with the inclusion of polynomials up to 5 degree. All of those transformed polynomial predictors have very small p-values but further investigation suggests that the polynomials beyond 5 degree does not actually improve the model. 
+
+By default, the *poly()* function orthogonalizes the predictors: this means that the features output by this function are not simply a sequence of powers of the argument. However, a linear model applied to the output of the *poly()* function will have the same fitted values as a linear model applied to the raw polynomials (although the coefficient estimates, standard errors, and p-values will differ). In order to obtain the raw polynomials from the *poly()* function, the argument *raw = TRUE* must be used.
+
+## *Qualitative Predictors*
+
+The *ISLR2* library contains another dataset: *Carseats*. We will try to estimate or predict the number of child seat sales in 400 different locations based on several predictors. 
+
+```{r}
+data("Carseats")
+head(Carseats)
+```
+
+This dataset contains categorical variables or qualitative predictors like *Shelveloc*, an indicator for the quality of the position of car seats inside the store. The predictor *Shelveloc* takes on three different categories: Good, Medium, and Bad. While fitting the model, R will automatically create dummy variables for these categories in the qualitative predictor. 
+
+We will fit a regression model with all the variables including a couple of interaction terms as well to incorporate the synergy effect. 
+
+```{r}
+lm.fit<-lm(Sales~.+Income:Advertising + Price:Age, data = Carseats)
+summary(lm.fit)
+```
+
+We can see, R has created a dummy variable *ShelvelocGood* that takes on a value of 1 if the location is good inside the store and another dummy variable *ShelvelocMedium* that is 1 for the medium location and 0 otherwise. The bad shelving location is serving as the reference and equal to zero for each of the two dummy variables created. The coefficient of the *ShelvelocGood* in the fitted linear model is good indicating a higher sale for the good location. The coefficient for *ShelvelocMedium* is low but still positive indicating a lower sale than the good location but still higher sale than a bad shelving location.  
+
